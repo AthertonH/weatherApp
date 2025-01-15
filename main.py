@@ -1,32 +1,6 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QLineEdit, QPushButton, QHBoxLayout, QVBoxLayout, QGridLayout, QLabel
+from PyQt5.QtGui import QPixmap
 import location
-import requests
-import math
-
-url = "http://api.openweathermap.org/data/2.5/weather"
-api_key = "f6e2978c6ae5300b5a90b4372a43296d"
-
-# Function get weather based on user location
-def get_weather_by_location():
-    loc = location.get_current_location()
-    if loc:
-        latitude, longitude, _ = loc
-        # Prepare API request paramaters
-        params = {
-            "lat": latitude,
-            "lon": longitude,
-            "appid": api_key,
-            "units": "metric"
-        }
-        # Call API
-        response = requests.get(url, params=params)
-        if response.status_code == 200:                     # 200 means request was successful
-            weather_data = response.json()
-            temp = weather_data["main"]["temp"]
-            fahrenheit = math.ceil((temp * 9/5) + 32)      # Convert celcius to fahrenheit, ceil it
-            description = weather_data["weather"][0]["description"]
-            city = weather_data["name"]
-            return f"Weather in {city}: {description.capitalize()}, {fahrenheit}°F"     # Return weather summary
 
 # PyQt5 Application
 app = QApplication([])
@@ -36,18 +10,32 @@ main_window.resize(960, 540)  # 16:9 Ratio
 
 # Widgets
 weather_label = QLabel("Click 'Check Weather' to get the current weather!")
+weather_image_label = QLabel()  # QLabel to display the weather image
 check_weather_button = QPushButton("Check Weather")
 
 # Button Action
 def fetch_and_display_weather():
-    weather_info = get_weather_by_location()
-    weather_label.setText(weather_info)
+    # Fetch weather info and image
+    weather_info = location.get_weather_by_location()
+    weather_image = location.display_weather()
 
+    # Update text label
+    weather_label.setText(weather_info if weather_info else "Weather data unavailable.")
+
+    # Update image label
+    if weather_image and not weather_image.isNull():
+        weather_image_label.setPixmap(weather_image)
+        weather_image_label.setScaledContents(True)  # Ensure scaling
+    else:
+        weather_image_label.setText("No image available.")  # Fallback text
+        print("Error: Failed to load weather image.")
+# When button is clicked, display image
 check_weather_button.clicked.connect(fetch_and_display_weather)
 
 # Layouts
 grid = QGridLayout()
 grid.addWidget(weather_label, 0, 0, 1, 2)  # Spanning 1 row, 2 columns
+grid.addWidget(weather_image_label, 1, 0, 1, 2)
 
 # Center the button with QHBoxLayout
 button_layout = QHBoxLayout()
